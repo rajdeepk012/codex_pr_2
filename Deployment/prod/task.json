@@ -1,0 +1,37 @@
+{
+    "family": "gf-prod-dashboard-service-tf",
+    "executionRoleArn": "arn:aws:iam::559050218188:role/gf-aws-mum-prod-ecs-role",
+    "taskRoleArn": "arn:aws:iam::559050218188:role/gf-aws-mum-prod-ecs-role",
+    "networkMode": "awsvpc",
+    "memory": "4096",
+    "cpu": "2048",
+    "placementConstraints": [],
+    "volumes": [],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "containerDefinitions": [
+        {
+            "memoryReservation": 1536,
+            "name": "gf-dashboard-service",
+            "mountPoints": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/gf-prod-dashboard-service-tf",
+                    "awslogs-region": "ap-south-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "image": "559050218188.dkr.ecr.ap-south-1.amazonaws.com/gf-dashboard-service:latest",
+            "essential": true,
+            "portMappings": [
+                {
+                    "protocol": "tcp",
+                    "containerPort": 8085,
+                    "hostPort": 8085
+                }
+            ]
+        }
+    ]
+}

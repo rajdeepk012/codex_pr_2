@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocumentSignService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gf-sf-frontline-service</a> &gt; <a href="index.source.html" class="el_package">co.mw.gf_sf_frontline_service.service</a> &gt; <span class="el_source">DocumentSignService.java</span></div><h1>DocumentSignService.java</h1><pre class="source lang-java linenums">package co.mw.gf_sf_frontline_service.service;
+
+import co.mw.gf_sf_frontline_service.common.LoggerUtil;
+import com.fasterxml.jackson.databind.*;
+import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.*;
+
+import java.io.IOException;
+import java.net.URL;
+
+@Service
+public class DocumentSignService {
+
+<span class="fc" id="L18">    private static final Logger logger = LoggerUtil.getLogger(DocumentSignService.class);</span>
+    @Value(&quot;${gf-integration-services.host}&quot;)
+    private String integrationServiceHost;
+
+<span class="fc" id="L22">    private final RestTemplate restTemplate = new RestTemplate();</span>
+    S3RoleBasedService s3RoleBasedService;
+    @Autowired
+<span class="fc" id="L25">    public DocumentSignService(S3RoleBasedService s3RoleBasedService){</span>
+<span class="fc" id="L26">        this.s3RoleBasedService=s3RoleBasedService;</span>
+<span class="fc" id="L27">    }</span>
+
+    public ResponseEntity&lt;Object&gt; sendSignRequest(Object request) {
+<span class="fc" id="L30">        String requestUrl = integrationServiceHost + &quot;/v1/contract/initiate&quot;;</span>
+<span class="fc" id="L31">        ResponseEntity&lt;Object&gt; response= executeRequest(requestUrl, HttpMethod.POST, new HttpEntity&lt;&gt;(request, createHeaders()), Object.class);</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        if(response.getStatusCode().equals(HttpStatus.OK)){</span>
+<span class="fc" id="L33">            return ResponseEntity.ok(response.getBody());</span>
+        }else{
+<span class="fc" id="L35">            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());</span>
+
+        }
+
+    }
+    private HttpHeaders createHeaders() {
+<span class="fc" id="L41">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L42">        headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="fc" id="L43">        return headers;</span>
+    }
+
+
+    private &lt;T&gt; ResponseEntity&lt;T&gt; executeRequest(String url, HttpMethod method, HttpEntity&lt;?&gt; entity, Class&lt;T&gt; responseType) {
+        try {
+<span class="fc" id="L49">            return restTemplate.exchange(url, method, entity, responseType);</span>
+<span class="nc" id="L50">        }catch (HttpStatusCodeException e){</span>
+<span class="nc" id="L51">            return new ResponseEntity&lt;&gt;((T) e.getMessage(),e.getStatusCode());</span>
+
+<span class="fc" id="L53">        }catch (RuntimeException e){</span>
+<span class="fc" id="L54">            return new ResponseEntity&lt;&gt;((T) (&quot;Internal application error : &quot;+e.getMessage()),HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L55">        } catch (Exception e) {</span>
+<span class="nc" id="L56">            return (ResponseEntity&lt;T&gt;) ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body((T) &quot;Error from internal service call : &quot;+e.getMessage());</span>
+        }
+    }
+
+    public ResponseEntity&lt;Object&gt; sendRemoteESignRequest(Object request) throws IOException {
+<span class="fc" id="L61">        ObjectMapper objectMapper = new ObjectMapper();</span>
+<span class="fc" id="L62">        String requestString = objectMapper.writeValueAsString(request);</span>
+<span class="fc" id="L63">        JsonNode rootNode = objectMapper.readTree(requestString);</span>
+<span class="fc" id="L64">        JsonNode pdfNode = rootNode</span>
+<span class="fc" id="L65">                .path(&quot;pdfUrl&quot;);</span>
+<span class="fc" id="L66">        JsonNode inputData=rootNode.path(&quot;inputData&quot;);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if (pdfNode.isMissingNode()) {</span>
+<span class="fc" id="L68">            return new ResponseEntity&lt;&gt;(&quot;PDF link is missing in input data &quot;,HttpStatus.EXPECTATION_FAILED);</span>
+        } else {
+<span class="fc" id="L70">            URL url1=new URL(pdfNode.asText());</span>
+<span class="fc" id="L71">            String fileName=url1.getFile();</span>
+<span class="fc" id="L72">            logger.info(&quot;file name of esigning doc : {}&quot;,fileName);</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">            if(fileName.startsWith(&quot;/&quot;)){</span>
+<span class="fc" id="L74">                fileName=fileName.substring(1);</span>
+<span class="fc" id="L75">                logger.info(&quot; filename send for s3 upload : {}&quot;,fileName);</span>
+            }
+<span class="fc" id="L77">            String requestUrl = integrationServiceHost + &quot;/v1/doc/remoteESigning&quot;;</span>
+            try {
+<span class="fc" id="L79">            ResponseEntity&lt;Object&gt; response= executeRequest(requestUrl, HttpMethod.POST, new HttpEntity&lt;&gt;(inputData, createHeaders()), Object.class);</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">       if(response.getStatusCode().equals(HttpStatus.OK)) {</span>
+<span class="fc" id="L81">           String responseStr = objectMapper.writeValueAsString(response.getBody());</span>
+<span class="fc" id="L82">           JsonNode jsonNode = objectMapper.readTree(responseStr);</span>
+<span class="fc" id="L83">           JsonNode jsonNode1 = jsonNode.path(&quot;signedDocument&quot;);</span>
+<span class="fc" id="L84">           logger.info(&quot;signed document length : {}&quot; , jsonNode1.asText().length());</span>
+<span class="fc" id="L85">           String signedDocLink = s3RoleBasedService.uploadFileToS3(jsonNode1.asText(), fileName);</span>
+<span class="fc" id="L86">           logger.info(&quot;signed doc link returning to SF :{} &quot; , signedDocLink);</span>
+<span class="fc" id="L87">           return new ResponseEntity&lt;&gt;(signedDocLink, HttpStatus.OK);</span>
+       }else{
+<span class="fc" id="L89">           return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(&quot;Internal API error : no signed document to upload on cloud : &quot;+response);</span>
+       }
+<span class="nc" id="L91">            } catch (Exception e) {</span>
+<span class="nc" id="L92">                logger.error(&quot;S3 upload error : {}&quot;,e.getMessage());</span>
+<span class="nc" id="L93">                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(&quot;Unable to upload signed document Base64 to cloud : &quot;+e.getMessage());</span>
+            }
+        }
+
+
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

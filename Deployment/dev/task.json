@@ -1,0 +1,50 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "gf-dashboard-service",
+            "image": "869935070506.dkr.ecr.ap-south-1.amazonaws.com/gf-dashboard-service:latest",
+            "cpu": 512,
+            "memory": 1024,
+            "memoryReservation": 512,
+            "portMappings": [
+                {
+                    "containerPort": 8085,
+                    "hostPort": 8085,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "environment": [],
+            "environmentFiles": [],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "ulimits": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/gf-dev-dashboard-service-tf",
+                    "awslogs-region": "ap-south-1",
+                    "awslogs-stream-prefix": "ecs"
+                },
+                "secretOptions": []
+            },
+            "systemControls": []
+        }
+    ],
+    "family": "gf-dev-dashboard-service-tf",
+    "taskRoleArn": "arn:aws:iam::869935070506:role/gf-ecs-dev-role",
+    "executionRoleArn": "arn:aws:iam::869935070506:role/gf-ecs-dev-role",
+    "networkMode": "awsvpc",
+    "volumes": [],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "1024",
+    "memory": "2048",
+    "tags": [
+        {
+            "key": "Name",
+            "value": "gf-dev-dashboard-service-tf"
+        }
+    ]
+}

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FileUploadController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gf-sf-frontline-service</a> &gt; <a href="index.source.html" class="el_package">co.mw.gf_sf_frontline_service.rest</a> &gt; <span class="el_source">FileUploadController.java</span></div><h1>FileUploadController.java</h1><pre class="source lang-java linenums">package co.mw.gf_sf_frontline_service.rest;
+
+import co.mw.gf_sf_frontline_service.common.LoggerUtil;
+import co.mw.gf_sf_frontline_service.rest.model.FileUploadRequest;
+import co.mw.gf_sf_frontline_service.service.S3RoleBasedService;
+import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+@RestController
+@Validated
+@RequestMapping(&quot;/v1/s3doc&quot;)
+public class FileUploadController {
+<span class="fc" id="L17">    private static final Logger logger = LoggerUtil.getLogger(FileUploadController.class);</span>
+    S3RoleBasedService fileUploadService;
+    @Autowired
+<span class="fc" id="L20">    public FileUploadController(S3RoleBasedService s3RoleBasedService){</span>
+<span class="fc" id="L21">        this.fileUploadService=s3RoleBasedService;</span>
+<span class="fc" id="L22">    }</span>
+    @PostMapping(path = &quot;/uploadMultipartFile&quot;, produces = &quot;application/json&quot;)
+    public ResponseEntity&lt;Object&gt; uploadFile(@RequestParam(&quot;pdf&quot;) MultipartFile pdfFile) {
+<span class="fc" id="L25">        logger.info(&quot;inside &gt;&gt;&gt;&gt; uploadcontroller &gt;&gt;&gt; upload file &quot;);</span>
+        try {
+<span class="fc" id="L27">            return ResponseEntity.ok(fileUploadService.uploadFileToS3(pdfFile));</span>
+<span class="fc" id="L28">        } catch (Exception e) {</span>
+<span class="fc" id="L29">            logger.error(&quot;Exception &gt;&gt;&gt;&gt; uploadFile &gt;&gt;&gt; {} &quot;,e.getMessage());</span>
+<span class="fc" id="L30">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());</span>
+        }
+    }
+
+    @PostMapping(value = &quot;/uploadFile&quot;, produces = &quot;application/json&quot;)
+    public ResponseEntity&lt;Object&gt; uploadBase64File(
+            @RequestBody FileUploadRequest fileUploadRequest) {
+<span class="fc" id="L37">        logger.info(&quot;inside &gt;&gt;&gt;&gt; uploadcontroller &gt;&gt;&gt; uploadBase64File&quot;);</span>
+        try{
+<span class="fc" id="L39">            return ResponseEntity.ok(</span>
+<span class="fc" id="L40">                    fileUploadService.uploadFileToS3(</span>
+<span class="fc" id="L41">                            fileUploadRequest.getFileStr(),</span>
+<span class="fc" id="L42">                            fileUploadRequest.getFileName()</span>
+                    ));
+        }
+<span class="fc" id="L45">        catch(Exception e){</span>
+<span class="fc" id="L46">            logger.error(&quot;Exception &gt;&gt;&gt;&gt; uploadBase64File &gt;&gt;&gt; {} &quot;,e.getMessage());</span>
+<span class="fc" id="L47">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomerOnboardingController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gf-sf-frontline-service</a> &gt; <a href="index.source.html" class="el_package">co.mw.gf_sf_frontline_service.rest</a> &gt; <span class="el_source">CustomerOnboardingController.java</span></div><h1>CustomerOnboardingController.java</h1><pre class="source lang-java linenums">package co.mw.gf_sf_frontline_service.rest;
+
+import co.mw.gf_sf_frontline_service.common.Base64ToResourceTransformer;
+import co.mw.gf_sf_frontline_service.common.LoggerUtil;
+import co.mw.gf_sf_frontline_service.rest.model.*;
+import co.mw.gf_sf_frontline_service.service.CustomerOnboardingService;
+import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import java.io.IOException;
+
+import static co.mw.gf_sf_frontline_service.common.Constants.API_VERSION;
+import static co.mw.gf_sf_frontline_service.common.Constants.CLIENT_REF_ID;
+
+@RestController
+@Validated
+@RequestMapping(API_VERSION+&quot;/customerOnboarding&quot;)
+public class CustomerOnboardingController {
+    private CustomerOnboardingService onboardingService;
+
+<span class="fc" id="L25">    private static final Logger logger = LoggerUtil.getLogger(CustomerOnboardingController.class);</span>
+
+
+    @Autowired
+<span class="fc" id="L29">    public CustomerOnboardingController(CustomerOnboardingService customerOnboardingService){</span>
+<span class="fc" id="L30">        this.onboardingService=customerOnboardingService;</span>
+<span class="fc" id="L31">    }</span>
+
+    @GetMapping(value = &quot;/addressDetails&quot;, produces = &quot;application/json&quot;)
+    public ResponseEntity&lt;Object&gt; getAddressDetails(@RequestParam(&quot;address&quot;) String address)  {
+<span class="fc" id="L35">        return onboardingService.getAddressDetails(address);</span>
+    }
+
+    @PostMapping(value = &quot;/panDetails&quot;, produces = &quot;application/json&quot;)
+    public ResponseEntity&lt;Object&gt; getPanDetails(
+            @RequestBody PanDetailsRequest panDetailsRequest) {
+        try {
+<span class="fc" id="L42">            Resource fileResource = Base64ToResourceTransformer.transformBase64ToResource(</span>
+<span class="fc" id="L43">                    panDetailsRequest.getFileStr()</span>
+<span class="fc" id="L44">                    , panDetailsRequest.getFileName());</span>
+
+<span class="fc bfc" id="L46" title="All 2 branches covered.">            if ((panDetailsRequest.getClientRefId() != null)</span>
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">                    &amp;&amp; !panDetailsRequest.getClientRefId().isBlank()) {</span>
+<span class="fc" id="L48">                return onboardingService.getPanDetails(panDetailsRequest.getClientRefId(), fileResource);</span>
+            } else {
+<span class="fc" id="L50">                return onboardingService.getPanDetails(CLIENT_REF_ID, fileResource);</span>
+            }
+<span class="fc" id="L52">        }catch(Exception e){</span>
+
+<span class="fc" id="L54">                return new ResponseEntity&lt;&gt;(&quot;error occured while extracting file from encoded string : &quot;+e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);</span>
+            }
+    }
+
+    @PostMapping(value = &quot;/gstDetails&quot;, produces = &quot;application/json&quot;)
+    public ResponseEntity&lt;Object&gt; getGstDetails(
+            @RequestBody GstDetailsRequest gstDetailsRequest) {
+try{
+<span class="fc" id="L62">        Resource fileResource = Base64ToResourceTransformer.transformBase64ToResource(</span>
+<span class="fc" id="L63">                gstDetailsRequest.getFileStr()</span>
+<span class="fc" id="L64">                , gstDetailsRequest.getFileName());</span>
+<span class="fc" id="L65">        return onboardingService.getGstDetails(CLIENT_REF_ID, fileResource);</span>
+}
+<span class="fc" id="L67">catch(Exception e){</span>
+<span class="fc" id="L68">    logger.error(&quot;Exception in method getGstDetails {}&quot;,e.getMessage());</span>
+<span class="fc" id="L69">    return new ResponseEntity&lt;&gt;(&quot;error occured while extracting file from encoded string : &quot;+e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);</span>
+}
+    }
+
+    @PostMapping(value = &quot;/eSign&quot;, produces = &quot;application/json&quot;)
+    public ResponseEntity&lt;DocumentSignResponse&gt; signAndRetrieveDocument(
+            @RequestBody DocumentSignRequest documentSignRequest)  {
+<span class="fc" id="L76">        return onboardingService.signAndRetrieveDocument(documentSignRequest);</span>
+    }
+
+    @PostMapping(value = &quot;/companyDetails&quot;, produces = &quot;application/json&quot;)
+    public ResponseEntity&lt;Object&gt; getCompanyDetails(
+            @RequestBody CompanyDetailsRequest companyDetailsRequest) throws IOException {
+<span class="fc" id="L82">        return onboardingService.getCompanyDetails(companyDetailsRequest);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

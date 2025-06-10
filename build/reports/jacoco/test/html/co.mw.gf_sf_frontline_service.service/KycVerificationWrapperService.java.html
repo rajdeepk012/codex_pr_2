@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KycVerificationWrapperService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gf-sf-frontline-service</a> &gt; <a href="index.source.html" class="el_package">co.mw.gf_sf_frontline_service.service</a> &gt; <span class="el_source">KycVerificationWrapperService.java</span></div><h1>KycVerificationWrapperService.java</h1><pre class="source lang-java linenums">package co.mw.gf_sf_frontline_service.service;
+
+import co.mw.gf_sf_frontline_service.rest.model.KycRequest;
+import co.mw.gf_sf_frontline_service.rest.model.KycResponse;
+import co.mw.gf_sf_frontline_service.service.impl.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+@Service
+public class KycVerificationWrapperService {
+
+    private AadhaarVerificationService aadhaarService;
+    private PanVerificationService panService;
+    private MobileVerificationService mobileService;
+    private UtilityBillVerificationService utilityBillService;
+    private  static final String AADHAAR=&quot;aadhaar&quot;;
+    private  static final String UTILITYBILL=&quot;utilityBill&quot;;
+
+    @Autowired
+<span class="fc" id="L27">    public KycVerificationWrapperService(AadhaarVerificationService aadhaarService,PanVerificationService panService,MobileVerificationService mobileService,UtilityBillVerificationService utilityBillService){</span>
+<span class="fc" id="L28">        this.aadhaarService=aadhaarService;</span>
+<span class="fc" id="L29">        this.panService=panService;</span>
+<span class="fc" id="L30">        this.mobileService=mobileService;</span>
+<span class="fc" id="L31">        this.utilityBillService=utilityBillService;</span>
+<span class="fc" id="L32">    }</span>
+
+    private static final long TIMEOUT_DURATION = 45;  // Timeout duration in seconds
+
+    public static boolean isNullOrBlank(String input)
+    {
+<span class="pc bpc" id="L38" title="2 of 4 branches missed.">        return input == null || input.isBlank();</span>
+    }
+    public KycResponse verifyKyc(KycRequest request) {
+<span class="fc" id="L41">        KycResponse response = new KycResponse();</span>
+<span class="fc" id="L42">        Map&lt;String, Object&gt; results = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L43">        List&lt;String&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L44">        List&lt;CompletableFuture&lt;Void&gt;&gt; futures = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L46">        handleAadhaarVerification(request, results, errors, futures);</span>
+<span class="fc" id="L47">        handlePanVerification(request, results, errors, futures);</span>
+<span class="fc" id="L48">        handleMobileVerification(request, results, errors, futures);</span>
+<span class="fc" id="L49">        handleUtilityBillVerification(request, results, errors, futures);</span>
+
+<span class="fc" id="L51">        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();</span>
+
+<span class="fc" id="L53">        response.setVerificationResults(results);</span>
+<span class="fc" id="L54">        response.setErrors(errors);</span>
+<span class="fc" id="L55">        return response;</span>
+    }
+
+    private void handleAadhaarVerification(KycRequest request, Map&lt;String, Object&gt; results, List&lt;String&gt; errors, List&lt;CompletableFuture&lt;Void&gt;&gt; futures) {
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        if (!KycVerificationWrapperService.isNullOrBlank(request.getAadhaar().getAadhaar())) {</span>
+<span class="fc" id="L60">            futures.add(CompletableFuture.runAsync(() -&gt; {</span>
+                try {
+<span class="fc" id="L62">                    Object result = aadhaarService.verify(request.getAadhaar().getAadhaar());</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">                    results.put(AADHAAR, result != null ? result : new HashMap&lt;&gt;());</span>
+<span class="nc" id="L64">                } catch (Exception e) {</span>
+<span class="nc" id="L65">                    errors.add(&quot;Aadhaar verification failed: &quot; + e.getMessage());</span>
+<span class="fc" id="L66">                }</span>
+<span class="fc" id="L67">            }).orTimeout(TIMEOUT_DURATION, TimeUnit.SECONDS));</span>
+        } else {
+<span class="nc" id="L69">            results.put(AADHAAR, new HashMap&lt;&gt;());</span>
+        }
+<span class="fc" id="L71">    }</span>
+
+    private void handlePanVerification(KycRequest request, Map&lt;String, Object&gt; results, List&lt;String&gt; errors, List&lt;CompletableFuture&lt;Void&gt;&gt; futures) {
+<span class="pc bpc" id="L74" title="2 of 4 branches missed.">        if (request.getPan() != null &amp;&amp; !KycVerificationWrapperService.isNullOrBlank(request.getPan().getPan())) {</span>
+<span class="fc" id="L75">            futures.add(CompletableFuture.runAsync(() -&gt; {</span>
+                try {
+<span class="fc" id="L77">                    Object result = panService.verify(</span>
+<span class="fc" id="L78">                            request.getPan().getPan(),</span>
+<span class="fc" id="L79">                            request.getPan().getName(),</span>
+<span class="fc" id="L80">                            request.getPan().getDob()</span>
+                    );
+<span class="fc" id="L82">                    results.put(&quot;pan&quot;, result);</span>
+<span class="nc" id="L83">                } catch (Exception e) {</span>
+<span class="nc" id="L84">                    errors.add(&quot;PAN verification failed: &quot; + e.getMessage());</span>
+<span class="fc" id="L85">                }</span>
+<span class="fc" id="L86">            }).orTimeout(TIMEOUT_DURATION, TimeUnit.SECONDS));</span>
+        } else {
+<span class="nc" id="L88">            results.put(&quot;pan&quot;, new HashMap&lt;&gt;());</span>
+        }
+<span class="fc" id="L90">    }</span>
+
+    private void handleMobileVerification(KycRequest request, Map&lt;String, Object&gt; results, List&lt;String&gt; errors, List&lt;CompletableFuture&lt;Void&gt;&gt; futures) {
+<span class="pc bpc" id="L93" title="1 of 2 branches missed.">        if (!KycVerificationWrapperService.isNullOrBlank(request.getMobile().getMobileNo())) {</span>
+<span class="fc" id="L94">            futures.add(CompletableFuture.runAsync(() -&gt; {</span>
+                try {
+<span class="fc" id="L96">                    Object result = mobileService.verify(request.getMobile().getMobileNo());</span>
+<span class="fc" id="L97">                    results.put(&quot;mobile&quot;, result);</span>
+<span class="nc" id="L98">                } catch (Exception e) {</span>
+<span class="nc" id="L99">                    errors.add(&quot;Mobile verification failed: &quot; + e.getMessage());</span>
+<span class="fc" id="L100">                }</span>
+<span class="fc" id="L101">            }).orTimeout(TIMEOUT_DURATION, TimeUnit.SECONDS));</span>
+        } else {
+<span class="nc" id="L103">            results.put(&quot;mobile&quot;, new HashMap&lt;&gt;());</span>
+        }
+<span class="fc" id="L105">    }</span>
+
+    private void handleUtilityBillVerification(KycRequest request, Map&lt;String, Object&gt; results, List&lt;String&gt; errors, List&lt;CompletableFuture&lt;Void&gt;&gt; futures) {
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">        if (request.getUtilityBill() != null &amp;&amp;</span>
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">                !KycVerificationWrapperService.isNullOrBlank(request.getUtilityBill().getElectricityProvider()) &amp;&amp;</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">                !KycVerificationWrapperService.isNullOrBlank(request.getUtilityBill().getConsumerNo())) {</span>
+<span class="fc" id="L111">            futures.add(CompletableFuture.runAsync(() -&gt; {</span>
+                try {
+<span class="fc" id="L113">                    Object result = utilityBillService.verify(</span>
+<span class="fc" id="L114">                            request.getUtilityBill().getElectricityProvider(),</span>
+<span class="fc" id="L115">                            request.getUtilityBill().getConsumerNo()</span>
+                    );
+<span class="fc" id="L117">                    results.put(UTILITYBILL, result);</span>
+<span class="nc" id="L118">                } catch (Exception e) {</span>
+<span class="nc" id="L119">                    errors.add(&quot;Utility Bill verification failed: &quot; + e.getMessage());</span>
+<span class="fc" id="L120">                }</span>
+<span class="fc" id="L121">            }).orTimeout(TIMEOUT_DURATION, TimeUnit.SECONDS));</span>
+        } else {
+<span class="nc" id="L123">            results.put(UTILITYBILL, new HashMap&lt;&gt;());</span>
+        }
+<span class="fc" id="L125">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

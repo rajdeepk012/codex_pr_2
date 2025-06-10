@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>S3RoleBasedService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gf-sf-frontline-service</a> &gt; <a href="index.source.html" class="el_package">co.mw.gf_sf_frontline_service.service</a> &gt; <span class="el_source">S3RoleBasedService.java</span></div><h1>S3RoleBasedService.java</h1><pre class="source lang-java linenums">package co.mw.gf_sf_frontline_service.service;
+
+import co.mw.gf_sf_frontline_service.common.LoggerUtil;
+import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
+import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.time.Duration;
+import java.util.Base64;
+
+@Service
+<span class="fc" id="L26">public class S3RoleBasedService {</span>
+
+<span class="fc" id="L28">    private static final Logger logger = LoggerUtil.getLogger(S3RoleBasedService.class);</span>
+    @Value(&quot;${aws.roleArn}&quot;)
+    private String roleArn;
+    @Value(&quot;${aws.region}&quot;)
+    private String region;
+    @Value(&quot;${aws.bucketName}&quot;)
+    private String bucket;
+    @Value(&quot;${aws.presSign.flag}&quot;)
+    private boolean preSignUrlFlag;
+
+    @Value(&quot;${aws.presign.duration.days}&quot;)
+    private Long awsPresignDuration;
+
+    @Value(&quot;${aws.session.duration.seconds}&quot;)
+    private Integer sessionDuration;
+
+    private AwsSessionCredentials getTemporaryCredentials() {
+<span class="fc" id="L45">        StsClient stsClient = StsClient.builder()</span>
+<span class="fc" id="L46">                .region(Region.of(region))</span>
+<span class="fc" id="L47">                .build();</span>
+
+<span class="fc" id="L49">        AssumeRoleRequest assumeRoleRequest = AssumeRoleRequest.builder()</span>
+<span class="fc" id="L50">                .roleArn(roleArn)</span>
+<span class="fc" id="L51">                .roleSessionName(&quot;s3-upload-session&quot;)</span>
+<span class="fc" id="L52">                .durationSeconds(sessionDuration)</span>
+<span class="fc" id="L53">                .build();</span>
+
+<span class="nc" id="L55">        AssumeRoleResponse assumeRoleResponse = stsClient.assumeRole(assumeRoleRequest);</span>
+
+<span class="nc" id="L57">        return AwsSessionCredentials.create(</span>
+<span class="nc" id="L58">                assumeRoleResponse.credentials().accessKeyId(),</span>
+<span class="nc" id="L59">                assumeRoleResponse.credentials().secretAccessKey(),</span>
+<span class="nc" id="L60">                assumeRoleResponse.credentials().sessionToken()</span>
+        );
+    }
+
+    public String uploadFileToS3(MultipartFile key) {
+        try
+        {
+<span class="nc" id="L67">            AwsSessionCredentials sessionCredentials = getTemporaryCredentials();</span>
+
+<span class="nc" id="L69">            S3Client s3Client = S3Client.builder()</span>
+<span class="nc" id="L70">                .region(Region.of(region))</span>
+<span class="nc" id="L71">                .credentialsProvider(StaticCredentialsProvider.create(sessionCredentials))</span>
+<span class="nc" id="L72">                .build();</span>
+
+<span class="nc" id="L74">            PutObjectRequest putObjectRequest = PutObjectRequest.builder()</span>
+<span class="nc" id="L75">                .bucket(bucket)</span>
+<span class="nc" id="L76">                .key(key.getOriginalFilename())</span>
+<span class="nc" id="L77">                .build();</span>
+
+<span class="nc" id="L79">            PutObjectResponse response = s3Client.putObject(putObjectRequest,</span>
+<span class="nc" id="L80">                software.amazon.awssdk.core.sync.RequestBody.fromBytes(key.getBytes()));</span>
+<span class="nc" id="L81">            logger.info(&quot;File uploaded successfully. Response: {}&quot; ,response);</span>
+
+<span class="nc bnc" id="L83" title="All 2 branches missed.">            if(preSignUrlFlag)</span>
+            {
+<span class="nc" id="L85">                return generatePresignedUrl(key.getOriginalFilename());</span>
+            }
+            else
+            {
+<span class="nc" id="L89">                return getFileUrl(key.getOriginalFilename());</span>
+            }
+        }
+<span class="nc" id="L92">        catch (Exception e) {</span>
+<span class="nc" id="L93">            throw new RuntimeException(&quot;Failed to upload file to S3 - &quot;+ e);</span>
+        }
+    }
+
+    public String uploadFileToS3(String base64String, String originalFileName) {
+<span class="nc" id="L98">        AwsSessionCredentials sessionCredentials = getTemporaryCredentials();</span>
+
+<span class="nc" id="L100">        S3Client s3Client = S3Client.builder()</span>
+<span class="nc" id="L101">                .region(Region.of(region))</span>
+<span class="nc" id="L102">                .credentialsProvider(StaticCredentialsProvider.create(sessionCredentials))</span>
+<span class="nc" id="L103">                .build();</span>
+
+<span class="nc" id="L105">        byte[] decodedBytes = Base64.getDecoder().decode(base64String);</span>
+<span class="nc" id="L106">        try (InputStream inputStream = new ByteArrayInputStream(decodedBytes)) {</span>
+<span class="nc" id="L107">            PutObjectRequest request = PutObjectRequest.builder()</span>
+<span class="nc" id="L108">                    .bucket(bucket)</span>
+<span class="nc" id="L109">                    .key(originalFileName)</span>
+<span class="nc" id="L110">                    .build();</span>
+<span class="nc" id="L111">            s3Client.putObject(request, RequestBody.fromInputStream(inputStream, decodedBytes.length));</span>
+
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            if(preSignUrlFlag)</span>
+            {
+<span class="nc" id="L115">                return generatePresignedUrl(originalFileName);</span>
+            }
+            else
+            {
+<span class="nc" id="L119">                return getFileUrl(originalFileName);</span>
+            }
+<span class="nc" id="L121">        } catch (Exception e) {</span>
+<span class="nc" id="L122">            throw new RuntimeException(&quot;File upload failed&quot;, e);</span>
+        }
+    }
+
+    public String generatePresignedUrl(String key) {
+        try {
+
+<span class="nc" id="L129">        AwsSessionCredentials sessionCredentials = getTemporaryCredentials();</span>
+
+<span class="nc" id="L131">        S3Presigner presigner = S3Presigner.builder()</span>
+<span class="nc" id="L132">                .region(Region.of(region))</span>
+<span class="nc" id="L133">                .credentialsProvider(StaticCredentialsProvider.create(sessionCredentials))</span>
+<span class="nc" id="L134">                .build();</span>
+
+<span class="nc" id="L136">        GetObjectRequest getObjectRequest = GetObjectRequest.builder()</span>
+<span class="nc" id="L137">                .bucket(bucket)</span>
+<span class="nc" id="L138">                .key(key)</span>
+<span class="nc" id="L139">                .build();</span>
+
+<span class="nc" id="L141">        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()</span>
+<span class="nc" id="L142">                .signatureDuration(Duration.ofDays(awsPresignDuration))</span>
+<span class="nc" id="L143">                .getObjectRequest(getObjectRequest)</span>
+<span class="nc" id="L144">                .build();</span>
+
+<span class="nc" id="L146">        return presigner.presignGetObject(presignRequest).url().toString();</span>
+        }
+<span class="nc" id="L148">        catch (Exception e) {</span>
+<span class="nc" id="L149">            throw new RuntimeException(&quot;Failed to generate presigned URL - &quot;+ e);</span>
+        }
+    }
+
+
+    private String getFileUrl(String fileName) {
+<span class="fc" id="L155">        return String.format(&quot;https://%s.s3.%s.amazonaws.com/%s&quot;, bucket, region, fileName);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

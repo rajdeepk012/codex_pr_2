@@ -1,0 +1,30 @@
+package co.mw.gf_dashboard_service.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class AvailableCases {
+    private int totalSize;
+
+    public void setTotalSize(int totalSize) {
+        this.totalSize = totalSize;
+    }
+
+    public void setRecords(List<Record> records) {
+        this.records = records;
+    }
+
+    private List<Record> records;
+
+    public int getTotalSize() {
+        return totalSize;
+    }
+
+    public List<Record> getRecords() {
+        return records;
+    }
+}

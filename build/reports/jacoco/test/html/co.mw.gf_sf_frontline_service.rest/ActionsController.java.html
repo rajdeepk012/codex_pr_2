@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ActionsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gf-sf-frontline-service</a> &gt; <a href="index.source.html" class="el_package">co.mw.gf_sf_frontline_service.rest</a> &gt; <span class="el_source">ActionsController.java</span></div><h1>ActionsController.java</h1><pre class="source lang-java linenums">package co.mw.gf_sf_frontline_service.rest;
+
+import co.mw.gf_sf_frontline_service.service.ActionsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import static co.mw.gf_sf_frontline_service.common.Constants.API_VERSION;
+
+@RestController
+@RequestMapping(API_VERSION+&quot;/actions&quot;)
+public class ActionsController {
+        private ActionsService actionsService;
+
+    @Autowired
+<span class="fc" id="L16">    public ActionsController(ActionsService actionsService){</span>
+<span class="fc" id="L17">        this.actionsService=actionsService;</span>
+<span class="fc" id="L18">    }</span>
+
+    @GetMapping(&quot;/pan/{panNumber}/gstList&quot;)
+    public ResponseEntity&lt;Object&gt; getGstListByPan(@PathVariable(&quot;panNumber&quot;) String panNumber){
+<span class="fc" id="L22">        return actionsService.getGstList(panNumber);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

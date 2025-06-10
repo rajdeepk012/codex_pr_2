@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OAuthTokenService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">gf-sf-frontline-service</a> &gt; <a href="index.source.html" class="el_package">co.mw.gf_sf_frontline_service.service</a> &gt; <span class="el_source">OAuthTokenService.java</span></div><h1>OAuthTokenService.java</h1><pre class="source lang-java linenums">package co.mw.gf_sf_frontline_service.service;
+
+import co.mw.gf_sf_frontline_service.common.LoggerUtil;
+import co.mw.gf_sf_frontline_service.rest.model.TokenResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Map;
+
+@Service
+public class OAuthTokenService {
+
+    @Value(&quot;${oauth.token.url}&quot;)
+    private String tokenUrl;
+
+    @Value(&quot;${oauth.client_id}&quot;)
+    private String clientId;
+
+    @Value(&quot;${oauth.client_secret}&quot;)
+    private String clientSecret;
+
+    @Value(&quot;${oauth.grant_type}&quot;)
+    private String grantType;
+
+    @Value(&quot;${oauth.cache.expiration}&quot;)
+    private long cacheExpiration;
+
+    private final RestTemplate restTemplate;
+<span class="fc" id="L36">    private static final Logger logger = LoggerUtil.getLogger(OAuthTokenService.class);</span>
+
+<span class="fc" id="L38">    public OAuthTokenService(RestTemplate restTemplate) {</span>
+<span class="fc" id="L39">        this.restTemplate = restTemplate;</span>
+<span class="fc" id="L40">    }</span>
+
+    @Cacheable(value = &quot;accessTokenCache&quot;, unless = &quot;#result == null&quot;)
+    public TokenResponse getAccessToken() {
+<span class="fc" id="L44">        return fetchAccessToken();</span>
+    }
+
+    private TokenResponse fetchAccessToken(){
+<span class="fc" id="L48">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L49">        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);</span>
+
+<span class="fc" id="L51">        MultiValueMap&lt;String, String&gt; formParams = new LinkedMultiValueMap&lt;&gt;();</span>
+<span class="fc" id="L52">        formParams.add(&quot;grant_type&quot;, grantType);</span>
+<span class="fc" id="L53">        formParams.add(&quot;client_id&quot;, clientId);</span>
+<span class="fc" id="L54">        formParams.add(&quot;client_secret&quot;, clientSecret);</span>
+
+<span class="fc" id="L56">        HttpEntity&lt;MultiValueMap&lt;String, String&gt;&gt; request = new HttpEntity&lt;&gt;(formParams, headers);</span>
+<span class="fc" id="L57">        String accessToken=&quot;&quot;;</span>
+
+        try
+        {
+<span class="fc" id="L61">            ResponseEntity&lt;String&gt; response = restTemplate.postForEntity(tokenUrl, request, String.class);</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">            if(response!=null)</span>
+            {
+<span class="fc" id="L64">                Map&lt;String, Object&gt; responseMap = new ObjectMapper().readValue(response.getBody(), Map.class);</span>
+<span class="fc" id="L65">                accessToken = (String) responseMap.get(&quot;access_token&quot;);</span>
+            }
+        }
+<span class="fc" id="L68">        catch (Exception e) {</span>
+<span class="fc" id="L69">            logger.error(&quot;Exception in method fetchAccessToken {}&quot;,e.getMessage());</span>
+<span class="fc" id="L70">            return new TokenResponse(&quot;Salesforce is unavailable at the moment.&quot;);</span>
+<span class="fc" id="L71">        }</span>
+
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">        return accessToken != null ? new TokenResponse(accessToken) : null;</span>
+    }
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

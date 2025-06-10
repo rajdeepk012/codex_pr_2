@@ -1,0 +1,50 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "gf-dashboard-service",
+            "image": "537124947008.dkr.ecr.ap-south-1.amazonaws.com/gf-dashboard-service:latest",
+            "cpu": 512,
+            "memory": 1024,
+            "memoryReservation": 512,
+            "portMappings": [
+                {
+                    "containerPort": 8085,
+                    "hostPort": 8085,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "environment": [],
+            "environmentFiles": [],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "ulimits": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/gf-uat-dashboard-service-tf",
+                    "awslogs-region": "ap-south-1",
+                    "awslogs-stream-prefix": "ecs"
+                },
+                "secretOptions": []
+            },
+            "systemControls": []
+        }
+    ],
+    "family": "gf-uat-dashboard-service-tf",
+    "taskRoleArn": "arn:aws:iam::537124947008:role/gf-aws-mum-uat-ecs-role",
+    "executionRoleArn": "arn:aws:iam::537124947008:role/gf-aws-mum-uat-ecs-role",
+    "networkMode": "awsvpc",
+    "volumes": [],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "1024",
+    "memory": "2048",
+    "tags": [
+        {
+            "key": "Name",
+            "value": "gf-uat-dashboard-service-tf"
+        }
+    ]
+}
