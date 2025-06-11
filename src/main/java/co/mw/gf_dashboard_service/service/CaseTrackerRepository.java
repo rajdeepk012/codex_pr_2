@@ -2,6 +2,7 @@ package co.mw.gf_dashboard_service.service;
 
 import co.mw.gf_dashboard_service.model.HistoryData;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import java.util.List;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -14,4 +15,12 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface CaseTrackerRepository extends MongoRepository<HistoryData, String> {
+
+    /**
+     * Retrieves the most recently created history entries.
+     *
+     * @return up to the last 100 {@link HistoryData} records ordered by
+     *         {@code createdDate} descending
+     */
+    List<HistoryData> findTop100ByOrderByCreatedDateDesc();
 }
