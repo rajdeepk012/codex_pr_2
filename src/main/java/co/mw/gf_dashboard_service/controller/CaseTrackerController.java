@@ -1,6 +1,6 @@
 package co.mw.gf_dashboard_service.controller;
 
-import co.mw.gf_dashboard_service.model.Case;
+import co.mw.gf_dashboard_service.model.HistoryData;
 import co.mw.gf_dashboard_service.service.CaseTrackerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,8 +20,8 @@ public class CaseTrackerController {
     }
 
     @GetMapping("/cases")
-    public ResponseEntity<List<Case>> getAllCases() {
-        List<Case> cases = caseTrackerService.getAllCases();
+    public ResponseEntity<List<HistoryData>> getAllCases() {
+        List<HistoryData> cases = caseTrackerService.getLatestCases();
         return ResponseEntity.ok(cases);
     }
 }
